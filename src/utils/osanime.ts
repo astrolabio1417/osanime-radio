@@ -1,18 +1,30 @@
-import fetch, { Headers } from "node-fetch";
+import fetch, { Headers, Response } from "node-fetch";
 import { parse } from "node-html-parser";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import Fs from "fs";
+import fs from "fs";
 
-async function saveFile(body, filename) {
-  const writer = Fs.createWriteStream(filename);
+interface IOsPlaylistItem {
+  title: string;
+  url: string;
+  image: string;
+}
+
+async function saveFile(body: NodeJS.ReadableStream, filename: string) {
+  const writer = fs.createWriteStream(filename);
   let success = true;
-  writer.on("error", () => (success = false));
+  writer.on("error", () => {
+    success = false;
+    fs.existsSync(filename) && fs.unlinkSync(filename);
+  });
   await promisify(pipeline)(body, writer).catch((e) => e && (success = false));
   return success;
 }
 
 export class OsAnime {
+  name: string;
+  url: string;
+  headers: Headers;
   constructor() {
     this.name = "OS Anime";
     this.url = "https://osanime.com";
@@ -23,8 +35,8 @@ export class OsAnime {
     });
   }
 
-  async list(page, sort = "newest") {
-    const SORTING = {
+  async list(page: string, sort = "newest") {
+    const SORTING: { [key: string]: string } = {
       newest: "idl",
       asc: "nl",
       desc: "n",
@@ -44,11 +56,12 @@ export class OsAnime {
     return this.listParser(html);
   }
 
-  listParser(html) {
+  listParser(html: string): IOsPlaylistItem[] {
     const soup = parse(html);
     const article = soup.querySelector("article");
-    const items = article.querySelectorAll("a", { rel: "bookmark" });
-    const itemsJson = [];
+    if (!article) return [];
+    const items = article.querySelectorAll("a"); //, { rel: "bookmark" }
+    const itemsJson: IOsPlaylistItem[] = [];
 
     items.map((item) => {
       const title = item.attrs["title"];
@@ -65,29 +78,32 @@ export class OsAnime {
     return itemsJson;
   }
 
-  getIdFromUrl(url) {
+  getIdFromUrl(url: string) {
     return url.replace("https://osanime.com/site-down.html?to-file=", "");
   }
 
-  async getMusicInfo(url) {
+  async getMusicInfo(url: string) {
     const id = this.getIdFromUrl(url);
     const musicUrl = `https://osanime.com/site-down.html?to-file=${id}`;
     console.log(musicUrl, id);
-    const response = await fetch(musicUrl, this.headers).catch((e) =>
-      console.log(e)
-    );
+    const response = await fetch(musicUrl, {
+      headers: this.headers,
+    }).catch((e) => console.log(e));
     if (!response || !response.ok) return null;
     const html = await response.text();
     const soup = parse(html);
     const source = soup.querySelector("source");
+    if (!source) return null;
     return {
       source: `https:${source.attrs.src.toString()}`,
       cookies: this.cookieParser(response),
     };
   }
 
-  async getMusicResponse(url) {
-    const { source, cookies } = await this.getMusicInfo(url);
+  async getMusicResponse(url: string) {
+    const info = await this.getMusicInfo(url);
+    if (!info) return null;
+    const { source, cookies } = info;
     const response = await fetch(source, {
       headers: new Headers({
         "user-agent":
@@ -103,21 +119,22 @@ export class OsAnime {
     return response;
   }
 
-  async downloader(url, filename) {
-    if (Fs.existsSync(filename)) return filename;
+  async downloader(url: string, filename: string) {
+    if (fs.existsSync(filename)) return filename;
     const response = await this.getMusicResponse(url);
-    if (!response) return null;
-    console.log(`Status ${response.status} | Downloading ${filename}`);
-    if (!response.status === 206 || !(await saveFile(response.body, filename)))
+    if (!response || response.status !== 206 || response.body === null)
       return null;
+    console.log(`Status ${response.status} | Downloading ${filename}`);
+    await saveFile(response.body, filename);
     return filename;
   }
 
-  cookieParser(response) {
+  cookieParser(response: Response) {
     const raw = response.headers.get("set-cookie");
-    const cookies = {};
+    if (!raw) return {};
+    const cookies: { [key: string]: string } = {};
 
-    raw.split("; ").map((entry) => {
+    raw.split("; ").map((entry: string) => {
       const split = entry.split("=");
       const name = split[0];
       const value = split[1];
@@ -131,17 +148,17 @@ export class OsAnime {
 async function ostDownloader() {
   const o = new OsAnime();
   let page = 1;
-  const songList = [];
+  const songList: IOsPlaylistItem[] = [];
 
   while (true) {
     console.log(`Page: ${page} | Total: ${songList.length}`);
-    const items = await o.list(page);
+    const items = await o.list(page.toString());
     if (!items) break;
     songList.push.apply(songList, items);
     page++;
   }
 
-  Fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
+  fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
   console.log("finished!");
   console.log(`Total: ${songList.length}`);
 }
@@ -150,7 +167,7 @@ async function ostDownloaderMulti(limit = 10) {
   const o = new OsAnime();
   let page = 1;
   const limitFetch = limit;
-  const songList = [];
+  const songList: IOsPlaylistItem[] = [];
   let totalPerMultiFetch = 1;
 
   while (totalPerMultiFetch) {
@@ -159,12 +176,12 @@ async function ostDownloaderMulti(limit = 10) {
     );
 
     await Promise.all(
-      [...Array(limitFetch)].map((_, i) => o.list(page + i))
+      [...Array(limitFetch)].map((_, i) => o.list((page + i).toString()))
     ).then((responses) => {
-      const newList = [];
+      const newList: IOsPlaylistItem[] = [];
 
-      responses.map((res) => {
-        newList.push.apply(newList, res);
+      responses.map((item) => {
+        item && newList.push.apply(newList, item);
       });
 
       songList.push.apply(songList, newList);
@@ -174,7 +191,9 @@ async function ostDownloaderMulti(limit = 10) {
     page += limitFetch;
   }
 
-  Fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
+  fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
   console.log("finished!");
   console.log(`Total: ${songList.length}`);
 }
+
+export { IOsPlaylistItem };

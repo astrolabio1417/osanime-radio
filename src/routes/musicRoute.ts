@@ -1,8 +1,10 @@
 import Express from "express";
-import Fs from "fs";
+import fs from "fs";
+import { IOsPlaylistItem } from "../utils/osanime";
 const musicRoute = Express.Router();
-const ostMusics = JSON.parse(
-  Fs.readFileSync("./public/ost-music.json", "utf-8")
+
+const ostMusics: IOsPlaylistItem[] = JSON.parse(
+  fs.readFileSync("/src/src/public/ost-music.json", "utf-8")
 );
 
 musicRoute.use((req, res, next) => {
@@ -11,9 +13,12 @@ musicRoute.use((req, res, next) => {
 });
 
 musicRoute.get("/", (req, res) => {
-  const s = req.query.search;
+  const search = req.query.search;
+
   res.json(
-    s ? ostMusics.filter((music) => music.title.includes(s)) : ostMusics
+    search
+      ? ostMusics.filter((music) => music.title.includes(search?.toString()))
+      : ostMusics
   );
 });
 

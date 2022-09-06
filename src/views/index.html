@@ -73,7 +73,7 @@
                 <img id="vol-up-svg" class="svg" src="/svg/volume-up.svg" />
             </div>
         </button>
-        <audio id="audio" controls src="/stream" preload="none" autoplay hidden></audio>
+        <audio id="audio" controls src="/stream" preload="none" hidden></audio>
         <hr>
         <ol id="musics"></ol>
     </div>
@@ -157,7 +157,11 @@
             pauseTime = new Date().getTime()
             onPlayPause()
         })
-        audio.addEventListener("error", () => reloadPlayer)
+        audio.addEventListener("error", () => { console.log("audio error..."); reloadPlayer() })
+        audio.addEventListener("ended", () => { console.log("audio ended..."); reloadPlayer() })
+        audio.addEventListener("waiting", () => {
+            console.log("buffering...");
+        })
     </script>
 </body>
 
