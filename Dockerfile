@@ -6,7 +6,7 @@ COPY ./package*.json .
 
 
 FROM base as development
-RUN npm install -g typescript ts-node-dev && npm install
+RUN npm install
 COPY . .
 ENV PORT=8000
 EXPOSE 8000

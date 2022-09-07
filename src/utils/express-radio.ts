@@ -7,15 +7,15 @@ import { OsAnime } from "./osanime";
 import { InterfaceRadioPlaylistItem } from "../@types/express-radio";
 
 class ExpressRadio {
-  connected: Express.Response[];
   playlists: InterfaceRadioPlaylistItem[];
   defaultHeaders: Headers;
   errors: number;
   max_errors: number;
+  clients: Express.Response[];
+  priorities: number;
 
   constructor(playlists: InterfaceRadioPlaylistItem[] = []) {
     this.playlists = playlists;
-    this.connected = [];
     this.defaultHeaders = new Headers({
       "user-agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -23,6 +23,8 @@ class ExpressRadio {
     });
     this.errors = 0;
     this.max_errors = 2;
+    this.clients = [];
+    this.priorities = 0;
   }
 
   add(item: InterfaceRadioPlaylistItem): string | null {
@@ -38,12 +40,44 @@ class ExpressRadio {
     return selected == -1 ? false : !!this.playlists.splice(selected, 1);
   }
 
+  searchById(id: string) {
+    const searchIndex = this.playlists.findIndex((item) => item?.id === id);
+    return {
+      result: searchIndex === -1 ? null : this.playlists[searchIndex],
+      index: searchIndex,
+    };
+  }
+
+  searchByTitle(q: string = "") {
+    return this.playlists.filter(
+      (item) => item.title.includes(q) || item.file.includes(q)
+    );
+  }
+
+  addToPriority(id: string): InterfaceRadioPlaylistItem | number {
+    /*
+      return: number || item
+        -1 = Not Found
+        -2 = Already in priority
+    */
+    const { result, index } = this.searchById(id);
+    if (index === -1) return -1;
+    if (index <= this.priorities) return -2;
+    const get = this.playlists.splice(index, 1);
+    this.priorities++;
+    this.playlists.splice(this.priorities, 0, get[0]);
+    return get[0];
+  }
+
   async createReadStream(
     item: InterfaceRadioPlaylistItem
   ): Promise<NodeJS.ReadableStream | null> {
     const isHttp = item?.file.includes("http");
 
-    if (!isHttp) return fs.createReadStream(item.file);
+    if (!isHttp) {
+      if (!fs.existsSync(item.file)) return null;
+      return fs.createReadStream(item.file);
+    }
     const response = await fetch(item?.file, {
       headers: item?.headers ?? this.defaultHeaders,
     });
@@ -51,8 +85,20 @@ class ExpressRadio {
   }
 
   playlistRotate() {
+    this.priorities && this.priorities--;
     const current = this.playlists.shift();
     current && this.playlists.splice(this.playlists.length - 1, 0, current);
+  }
+
+  addClient(response: Express.Response) {
+    this.clients.push(response);
+  }
+
+  removeClient(response: Express.Response) {
+    const clientIdex = this.clients.findIndex((res) => res === response);
+    if (clientIdex === -1) return false;
+    console.log(`Client ${clientIdex} has been disconnected!`);
+    this.clients.splice(clientIdex, 1);
   }
 
   async play(): Promise<void> {
@@ -86,10 +132,9 @@ class ExpressRadio {
 
     const bit_rate = parseInt(ffprobeData?.format?.bit_rate ?? "0");
     const throttler = new Throttle(bit_rate / 8);
+    new Promise((resolve) => setTimeout(resolve, 1000));
     console.log("streaming started...");
-    throttler.on("data", (chunk) =>
-      this.connected.map((res) => res.write(chunk))
-    );
+    throttler.on("data", (chunk) => this.clients.map((r) => r.write(chunk)));
     throttler.on("end", () => {
       this.playlistRotate();
       this.errors = 0;

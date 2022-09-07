@@ -22,9 +22,59 @@
         href="https://dl3.wapkizfile.info/ddl/b1467d0a5330091b554e2d892f7e8308/osanime+wapkiz+com/002-(osanime.wapkiz.com).gif">
     <link rel="shortcut icon" type="image/x-icon"
         href="https://dl3.wapkizfile.info/ddl/b1467d0a5330091b554e2d892f7e8308/osanime+wapkiz+com/002-(osanime.wapkiz.com).gif">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
     <style>
+        body {
+            margin: 0px;
+            background-color: rgb(91, 91, 91);
+            color: white;
+            font-family: 'Mochiy Pop P One', sans-serif;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .nav {
+            padding: 5% 0px 5% 0px;
+            margin: 0px auto 2% auto;
+        }
+
+        #nav-title {
+            font-size: x-large;
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        #nav-title:hover {
+            font-weight: 100;
+        }
+
+        .container {
+            margin: 0px 20% 0px 20%;
+            padding: 1px 2% 1px 2%;
+            background-color: rgb(43, 43, 43);
+        }
+
+        .player {
+            margin: auto;
+            width: 50%;
+        }
+
+        #player-header {
+            margin: 0px auto 12px auto;
+            width: 50%;
+        }
+
         .player-button {
             border-style: none;
+        }
+
+        #musics {
+            margin: 10% auto 10% auto;
         }
 
         .svg {
@@ -49,32 +99,56 @@
         .player-button:active {
             background-color: rgb(56, 179, 255);
         }
+
+        .download {
+            border-style: none;
+            font-family: inherit;
+            color: black;
+            background-color: white;
+            border-radius: 2px;
+            padding: 0px 1% 0px 1%;
+            margin: 0px 1% 0px 1%;
+        }
+
+        .download:hover {
+            background-color: lightblue;
+        }
+
+        @media only screen and (max-width: 800px) {
+            .container {
+                margin: 0px 1% 0px 1%;
+            }
+        }
     </style>
 </head>
 
 
 <body>
-    <div style="margin: auto; padding: auto;">
-
-        <hr>
-        <div id="current"></div>
-        <button class="player-button" id="play-pause">
-            <div class="svg-container">
-                <img id="play-pause-svg" class="svg" src="/svg/play.svg" />
-            </div>
-        </button>
-        <button class="player-button" id="volume-down">
-            <div class="svg-container">
-                <img id="vol-down-svg" class="svg" src="/svg/volume-down.svg" />
-            </div>
-        </button>
-        <button class="player-button" id="volume-up">
-            <div class="svg-container">
-                <img id="vol-up-svg" class="svg" src="/svg/volume-up.svg" />
-            </div>
-        </button>
-        <audio id="audio" controls src="/stream" preload="none" hidden></audio>
-        <hr>
+    <div class="container">
+        <div class="nav">
+            <a id="nav-title" href="https://osanime-radio.onrender.com/">Osanime Radio</a>
+        </div>
+        <input id="priority-input" placeholder="ID" hidden />
+        <button onclick="onAddToPriority()" hidden>Add to queue</button>
+        <div id="player-header"></div>
+        <div class="player">
+            <button class="player-button" id="play-pause">
+                <div class="svg-container">
+                    <img id="play-pause-svg" class="svg" src="/svg/play.svg" />
+                </div>
+            </button>
+            <button class="player-button" id="volume-down">
+                <div class="svg-container">
+                    <img id="vol-down-svg" class="svg" src="/svg/volume-down.svg" />
+                </div>
+            </button>
+            <button class="player-button" id="volume-up">
+                <div class="svg-container">
+                    <img id="vol-up-svg" class="svg" src="/svg/volume-up.svg" />
+                </div>
+            </button>
+            <audio id="audio" controls src="/stream" preload="none" hidden></audio>
+        </div>
         <ol id="musics"></ol>
     </div>
 
@@ -87,6 +161,76 @@
         const playButtonSvg = document.getElementById("play-pause-svg")
         const volUpButton = document.getElementById("volume-up")
         const volDownButton = document.getElementById("volume-down")
+        const priorityInput = document.getElementById("priority-input")
+        const musicsOrderList = document.getElementById("musics")
+
+        async function musicQueue() {
+            const res = await fetch("/stream/queue")
+            if (!res.ok) return
+            const { priorities, connected, results } = await res.json()
+            const current = results[0]
+            const currentDiv = document.getElementById("player-header")
+            currentDiv.innerHTML = ""
+            const title = document.createElement("h1")
+            const connectedElement = document.createElement("span")
+            const prioritiesElement = document.createElement("span")
+            title.innerHTML = `${current?.title}`
+            connectedElement.innerHTML = `Connected: ${connected} <br>`
+            prioritiesElement.innerHTML = `Priorities: ${priorities + 1}`
+            currentDiv.appendChild(title)
+            currentDiv.appendChild(connectedElement)
+            currentDiv.appendChild(prioritiesElement)
+
+
+            musicsOrderList.innerHTML = ""
+            results.map((m, index) => {
+                const listElement = document.createElement("li")
+                const divElement = document.createElement("div")
+                const priorityElement = document.createElement("button")
+                const downloadElement = document.createElement("button")
+                const downloadLinkElement = document.createElement("a")
+                const titleElement = document.createElement("span")
+
+                titleElement.innerHTML = `${m?.title}`
+                downloadLinkElement.innerHTML = "Download"
+                downloadLinkElement.href = `/stream/${m?.id}/download`
+                downloadElement.className = "download"
+                downloadElement.appendChild(downloadLinkElement)
+
+                if (index > priorities) {
+                    priorityElement.innerHTML = "Add to priority"
+                    priorityElement.className = "download"
+                    priorityElement.onclick = () => {
+                        priorityInput.value = m?.id
+                        onAddToPriority()
+                    }
+                    divElement.appendChild(priorityElement)
+                }
+
+                divElement.appendChild(downloadElement)
+                divElement.appendChild(titleElement)
+                listElement.append(divElement)
+                musicsOrderList.appendChild(listElement)
+            })
+        }
+
+
+        async function onAddToPriority() {
+            console.log("add to priority");
+            if (!priorityInput.value) return
+
+            const res = await fetch("/stream/add-to-priority", {
+                method: "post",
+                headers: new Headers({
+                    "content-type": "application/json"
+                }),
+                body: JSON.stringify({
+                    id: priorityInput.value
+                })
+            })
+            const body = await res.json()
+            console.log(body);
+        }
 
         function setPlayPause() {
             audio.paused ? audio.play() : audio.pause()
@@ -104,29 +248,6 @@
             }
         }
 
-        async function musicQueue() {
-            const res = await fetch("/stream/queue")
-            if (!res.ok) return
-            const data = await res.json()
-            const current = data[0]
-
-            const currentDiv = document.getElementById("current")
-            const title = document.createElement("h1")
-            title.innerHTML = current?.title
-            currentDiv.innerHTML = ""
-            currentDiv.appendChild(title)
-
-            const musicsOrderList = document.getElementById("musics")
-
-            musicsOrderList.innerHTML = ""
-            data.map(m => {
-                const li = document.createElement("li")
-                const div = document.createElement("div")
-                div.innerHTML = m.title
-                li.append(div)
-                musicsOrderList.appendChild(li)
-            })
-        }
 
         function reloadPlayer() {
             console.log("audio error! reloading...");
@@ -146,8 +267,8 @@
         audio.addEventListener("play", () => {
             const now = new Date().getTime()
             const seconds = (now - pauseTime) / 1000
-            const maxPause = 20
-            if (pauseTime !== 0 && seconds >= maxPause) {
+            const secondsToReload = 2
+            if (pauseTime !== 0 && seconds >= secondsToReload) {
                 reloadPlayer()
                 pauseTime = 0
             }
