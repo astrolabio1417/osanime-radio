@@ -2,9 +2,8 @@
   "name": "osanime-radio",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "public": "cp -r ./src/public ./dist/public",
-    "start": "npm run build && npm run public && node ./dist/index.js",
+    "build": "tsc && cp -r ./src/public ./dist/public",
+    "start": "npm run build && node ./dist/index.js",
     "dev": "nodemon -L --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
   },
   "dependencies": {
