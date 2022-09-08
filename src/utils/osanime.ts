@@ -1,8 +1,9 @@
-import fetch, { Headers, Response } from "node-fetch";
-import { parse } from "node-html-parser";
-import { pipeline } from "stream";
-import { promisify } from "util";
-import fs from "fs";
+/* eslint-disable require-jsdoc */
+import fetch, {Headers, Response} from 'node-fetch';
+import {parse} from 'node-html-parser';
+import {pipeline} from 'stream';
+import {promisify} from 'util';
+import fs from 'fs';
 
 interface IOsPlaylistItem {
   title: string;
@@ -13,7 +14,7 @@ interface IOsPlaylistItem {
 async function saveFile(body: NodeJS.ReadableStream, filename: string) {
   const writer = fs.createWriteStream(filename);
   let success = true;
-  writer.on("error", () => {
+  writer.on('error', () => {
     success = false;
     fs.existsSync(filename) && fs.unlinkSync(filename);
   });
@@ -26,23 +27,24 @@ export class OsAnime {
   url: string;
   headers: Headers;
   constructor() {
-    this.name = "OS Anime";
-    this.url = "https://osanime.com";
+    this.name = 'OS Anime';
+    this.url = 'https://osanime.com';
     this.headers = new Headers({
-      "user-agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
-      referer: "https://osanime.com/",
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'+
+        '(KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+      'referer': 'https://osanime.com/',
     });
   }
 
-  async list(page: string, sort = "newest") {
+  async list(page: string, sort = 'newest') {
     const SORTING: { [key: string]: string } = {
-      newest: "idl",
-      asc: "nl",
-      desc: "n",
+      newest: 'idl',
+      asc: 'nl',
+      desc: 'n',
     };
 
-    sort = SORTING[sort] ?? "idl";
+    sort = SORTING[sort] ?? 'idl';
     const ostPageUrl = `${this.url}/page-lists/1/Ost-Anime/${sort}/${
       page || 1
     }`;
@@ -58,20 +60,20 @@ export class OsAnime {
 
   listParser(html: string): IOsPlaylistItem[] {
     const soup = parse(html);
-    const article = soup.querySelector("article");
+    const article = soup.querySelector('article');
     if (!article) return [];
-    const items = article.querySelectorAll("a"); //, { rel: "bookmark" }
+    const items = article.querySelectorAll('a'); // , { rel: "bookmark" }
     const itemsJson: IOsPlaylistItem[] = [];
 
     items.map((item) => {
-      const title = item.attrs["title"];
-      const image = item.querySelector("img");
+      const title = item.attrs['title'];
+      const image = item.querySelector('img');
       if (!title || !image) return;
 
       itemsJson.push({
-        title: item.attrs["title"],
-        url: item.attrs["href"],
-        image: `https${image.attrs["src"]}`,
+        title: item.attrs['title'],
+        url: item.attrs['href'],
+        image: `https${image.attrs['src']}`,
       });
     });
 
@@ -79,7 +81,7 @@ export class OsAnime {
   }
 
   getIdFromUrl(url: string) {
-    return url.replace("https://osanime.com/site-down.html?to-file=", "");
+    return url.replace('https://osanime.com/site-down.html?to-file=', '');
   }
 
   async getMusicInfo(url: string) {
@@ -92,9 +94,9 @@ export class OsAnime {
     if (!response || !response.ok) return null;
     const html = await response.text();
     const soup = parse(html);
-    const source = soup.querySelector("source");
+    const source = soup.querySelector('source');
     if (!source) return null;
-    const { osanime_com: session } = this.cookieParser(response);
+    const {osanime_com: session} = this.cookieParser(response);
 
     return {
       source: `https:${source.attrs.src.toString()}`,
@@ -104,7 +106,7 @@ export class OsAnime {
 
   async getRedirect(url: string) {
     const res = await fetch(url, {
-      method: "head",
+      method: 'head',
     });
     return res?.url;
   }
@@ -112,16 +114,17 @@ export class OsAnime {
   async getMusicResponse(url: string) {
     const info = await this.getMusicInfo(url);
     if (!info) return null;
-    const { source, session } = info;
+    const {source, session} = info;
     const response = await fetch(source, {
       headers: new Headers({
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
-        referer: url,
-        range: "bytes=0-",
-        "accept-encoding": "identity;q=1, *;q=0",
-        Connection: "keep-alive",
-        cookie: `osanime_com=${session}`,
+        'user-agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'+
+          '(KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+        'referer': url,
+        'range': 'bytes=0-',
+        'accept-encoding': 'identity;q=1, *;q=0',
+        'Connection': 'keep-alive',
+        'cookie': `osanime_com=${session}`,
       }),
     }).catch((e) => console.log(e));
     return response;
@@ -132,20 +135,21 @@ export class OsAnime {
   async downloader(url: string, filename: string) {
     if (fs.existsSync(filename)) return filename;
     const response = await this.getMusicResponse(url);
-    if (!response || response.status !== 206 || response.body === null)
+    if (!response || response.status !== 206 || response.body === null) {
       return null;
+    }
     console.log(`Status ${response.status} | Downloading ${filename}`);
     await saveFile(response.body, filename);
     return filename;
   }
 
   cookieParser(response: Response) {
-    const raw = response.headers.get("set-cookie");
+    const raw = response.headers.get('set-cookie');
     if (!raw) return {};
     const cookies: { [key: string]: string } = {};
 
-    raw.split("; ").map((entry: string) => {
-      const split = entry.split("=");
+    raw.split('; ').map((entry: string) => {
+      const split = entry.split('=');
       const name = split[0];
       const value = split[1];
       cookies[name] = value;
@@ -164,12 +168,12 @@ async function ostDownloader() {
     console.log(`Page: ${page} | Total: ${songList.length}`);
     const items = await o.list(page.toString());
     if (!items) break;
-    songList.push.apply(songList, items);
+    songList.push(...items);
     page++;
   }
 
-  fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
-  console.log("finished!");
+  fs.writeFileSync('./anime-ost-list.json', JSON.stringify(songList));
+  console.log('finished!');
   console.log(`Total: ${songList.length}`);
 }
 
@@ -182,28 +186,28 @@ async function ostDownloaderMulti(limit = 10) {
 
   while (totalPerMultiFetch) {
     console.log(
-      `Page: ${page}-${page + limitFetch} | Total: ${songList.length}`
+        `Page: ${page}-${page + limitFetch} | Total: ${songList.length}`,
     );
 
     await Promise.all(
-      [...Array(limitFetch)].map((_, i) => o.list((page + i).toString()))
+        [...Array(limitFetch)].map((_, i) => o.list((page + i).toString())),
     ).then((responses) => {
       const newList: IOsPlaylistItem[] = [];
 
       responses.map((item) => {
-        item && newList.push.apply(newList, item);
+        item && newList.push(...item);
       });
 
-      songList.push.apply(songList, newList);
+      songList.push(...newList);
       totalPerMultiFetch = newList.length;
     });
 
     page += limitFetch;
   }
 
-  fs.writeFileSync("./anime-ost-list.json", JSON.stringify(songList));
-  console.log("finished!");
+  fs.writeFileSync('./anime-ost-list.json', JSON.stringify(songList));
+  console.log('finished!');
   console.log(`Total: ${songList.length}`);
 }
 
-export { IOsPlaylistItem };
+export {IOsPlaylistItem, ostDownloader, ostDownloaderMulti};

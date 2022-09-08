@@ -4,7 +4,6 @@ WORKDIR /src
 RUN apk --update add ffmpeg
 COPY ./package*.json .
 
-
 FROM base as development
 RUN npm install
 COPY . .
@@ -14,6 +13,6 @@ CMD ["npm", "run", "dev"]
 
 
 FROM base as production
-RUN npm install -g typescript && npm install
+RUN npm install
 COPY . .
 CMD ["npm", "run", "start"]

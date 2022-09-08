@@ -1,4 +1,4 @@
-import { Headers } from "node-fetch";
+import {Headers} from 'node-fetch';
 
 interface InterfaceRadioPlaylistItem {
   id: string;
@@ -8,4 +8,4 @@ interface InterfaceRadioPlaylistItem {
   headers?: Headers;
 }
 
-export { InterfaceRadioPlaylistItem };
+export {InterfaceRadioPlaylistItem};

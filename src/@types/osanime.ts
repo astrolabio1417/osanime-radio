@@ -4,4 +4,4 @@ interface InterfaceOsanimeItem {
   image: string;
 }
 
-export { InterfaceOsanimeItem };
+export {InterfaceOsanimeItem};

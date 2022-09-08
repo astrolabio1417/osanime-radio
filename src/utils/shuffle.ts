@@ -1,6 +1,11 @@
-function shuffle(array: any[]) {
-  let currentIndex = array.length,
-    randomIndex: number;
+/**
+ * function to shuffle the list
+ * @param {any[]} array - list
+ * @return {any[]} list
+ */
+function shuffle(array: any[]): any[] {
+  let currentIndex = array.length;
+  let randomIndex: number;
 
   while (currentIndex != 0) {
     randomIndex = Math.floor(Math.random() * currentIndex);
@@ -16,4 +21,4 @@ function shuffle(array: any[]) {
   return array;
 }
 
-export { shuffle };
+export {shuffle};
