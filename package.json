@@ -1,6 +1,6 @@
 {
   "name": "osanime-radio",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "public": "cp -r ./src/public ./dist/public",
