@@ -72,7 +72,7 @@ class ExpressRadio {
   async createReadStream(
     item: InterfaceRadioPlaylistItem
   ): Promise<NodeJS.ReadableStream | null> {
-    const isHttp = item?.file.includes("http");
+    const isHttp = item?.file.startsWith("http");
 
     if (!isHttp) {
       if (!fs.existsSync(item.file)) return null;
@@ -132,7 +132,6 @@ class ExpressRadio {
 
     const bit_rate = parseInt(ffprobeData?.format?.bit_rate ?? "0");
     const throttler = new Throttle(bit_rate / 8);
-    new Promise((resolve) => setTimeout(resolve, 1000));
     console.log("streaming started...");
     throttler.on("data", (chunk) => this.clients.map((r) => r.write(chunk)));
     throttler.on("end", () => {
@@ -155,23 +154,30 @@ class OsAnimeRadio extends ExpressRadio {
   async createReadStream(
     item: InterfaceRadioPlaylistItem
   ): Promise<NodeJS.ReadableStream | null> {
-    console.log("creating readstream", item.title);
+    const { file, title } = item;
+    console.log("Creating readstream...");
 
-    if (item.file.includes("http")) {
-      console.log("downloading...", item?.title);
-      const getMp3Url = await this.osanime.getMusicInfo(item.file);
-      item.file = getMp3Url?.source ?? item.file;
+    if (file.startsWith("https://osanime.com/site-down.html?to-file=")) {
+      console.log("Getting file info...", title);
+      const { source } = (await this.osanime.getMusicInfo(file)) || {};
+      let url = source ?? file;
+
+      if (source?.startsWith("https://osanime.com/filedownload/")) {
+        console.log("Getting redirect url...");
+        url = (await this.osanime.getRedirect(source)) ?? file;
+        console.log(`Redirect url of ${source} is ${url}`);
+      }
+
+      item.file = url;
       item.headers = new Headers({
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
         referer: item.file,
         range: "bytes=0-",
-        "accept-encoding": "identity;q=1, *;q=0",
         Connection: "keep-alive",
-        cookie: `osanime_com=${getMp3Url?.cookies?.osanime_com}`,
       });
-      console.log("downloaded");
     }
+
     return super.createReadStream(item);
   }
 }

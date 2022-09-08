@@ -64,13 +64,9 @@
             width: 50%;
         }
 
-        #player-header {
-            margin: 0px auto 12px auto;
-            width: 50%;
-        }
-
         .player-button {
             border-style: none;
+            margin: 1%;
         }
 
         #musics {
@@ -118,6 +114,12 @@
             .container {
                 margin: 0px 1% 0px 1%;
             }
+
+            .player {
+                width: auto;
+            }
+
+
         }
     </style>
 </head>
@@ -130,8 +132,9 @@
         </div>
         <input id="priority-input" placeholder="ID" hidden />
         <button onclick="onAddToPriority()" hidden>Add to queue</button>
-        <div id="player-header"></div>
         <div class="player">
+            <div id="player-header"></div>
+            <br>
             <button class="player-button" id="play-pause">
                 <div class="svg-container">
                     <img id="play-pause-svg" class="svg" src="/svg/play.svg" />

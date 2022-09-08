@@ -94,16 +94,25 @@ export class OsAnime {
     const soup = parse(html);
     const source = soup.querySelector("source");
     if (!source) return null;
+    const { osanime_com: session } = this.cookieParser(response);
+
     return {
       source: `https:${source.attrs.src.toString()}`,
-      cookies: this.cookieParser(response),
+      session: session,
     };
+  }
+
+  async getRedirect(url: string) {
+    const res = await fetch(url, {
+      method: "head",
+    });
+    return res?.url;
   }
 
   async getMusicResponse(url: string) {
     const info = await this.getMusicInfo(url);
     if (!info) return null;
-    const { source, cookies } = info;
+    const { source, session } = info;
     const response = await fetch(source, {
       headers: new Headers({
         "user-agent":
@@ -112,12 +121,13 @@ export class OsAnime {
         range: "bytes=0-",
         "accept-encoding": "identity;q=1, *;q=0",
         Connection: "keep-alive",
-        cookie: `osanime_com=${cookies["osanime_com"]}`,
+        cookie: `osanime_com=${session}`,
       }),
     }).catch((e) => console.log(e));
-
     return response;
   }
+
+  async getRedirectUrl(url: string) {}
 
   async downloader(url: string, filename: string) {
     if (fs.existsSync(filename)) return filename;
