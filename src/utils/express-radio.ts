@@ -26,6 +26,7 @@ class ExpressRadio {
       'user-agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' +
         ' (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+      'Connection': 'keep-alive',
     });
     this.errors = 0;
     this.max_errors = 2;
@@ -61,7 +62,7 @@ class ExpressRadio {
    */
   searchById(id: string): {
     result: InterfaceRadioPlaylistItem | null;
-    index: number
+    index: number;
   } {
     const searchIndex = this.playlist.findIndex((item) => item?.id === id);
     return {
@@ -151,7 +152,7 @@ class ExpressRadio {
   async play(): Promise<void> {
     if (this.playlist.length === 0) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      return this.play();
+      return await this.play();
     }
     const selected = this.playlist[0];
     console.log(selected?.file);
@@ -159,14 +160,14 @@ class ExpressRadio {
       console.error(e, 'readstream error');
       return null;
     });
-
     const ffprobeData = await ffprobe(selected.file).catch((e) => {
       console.error(e, 'ffprobe error');
       return null;
     });
-    console.log('BIT_RATE: ', ffprobeData?.format?.bit_rate);
+    const {duration, bit_rate: bitRate} = ffprobeData?.format || {};
+    console.log(`timeout ${duration} | bitrate ${bitRate}`);
 
-    if (!readStream || !ffprobeData?.format?.bit_rate) {
+    if (!readStream || !bitRate || !duration) {
       this.errors++;
 
       if (this.errors >= this.max_errors) {
@@ -174,19 +175,33 @@ class ExpressRadio {
         this.playlistRotate();
       }
 
-      return this.play();
+      return await this.play();
     }
 
-    const bitRate = parseInt(ffprobeData?.format?.bit_rate ?? '0');
-    const throttler = new Throttle(bitRate / 8);
+    const throttler = new Throttle((parseInt(bitRate)) / 8);
+    const timeoutTimer = (parseInt(duration) * 1000) + 5000;
+    const timer = setTimeout(() => {
+      throttler.destroy();
+      this._onEnded();
+    }, timeoutTimer);
+
     console.log('streaming started...');
     throttler.on('data', (chunk) => this.clients.map((r) => r.write(chunk)));
     throttler.on('end', () => {
-      this.playlistRotate();
-      this.errors = 0;
-      this.play();
+      clearTimeout(timer);
+      this._onEnded();
     });
     readStream?.pipe(throttler);
+  }
+
+  /**
+   *
+   */
+  _onEnded() {
+    console.log('finished playing...');
+    this.playlistRotate();
+    this.errors = 0;
+    this.play();
   }
 }
 
@@ -209,8 +224,9 @@ class OsAnimeRadio extends ExpressRadio {
    * @param {InterfaceRadioPlaylistItem} item - item of playlist
    * @return {Promise<NodeJS.ReadableStream | null>} nothing to say
    */
-  async createReadStream(item: InterfaceRadioPlaylistItem):
-  Promise<NodeJS.ReadableStream | null> {
+  async createReadStream(
+      item: InterfaceRadioPlaylistItem,
+  ): Promise<NodeJS.ReadableStream | null> {
     const {file, title} = item;
     console.log('Creating readstream...');
 
@@ -219,19 +235,20 @@ class OsAnimeRadio extends ExpressRadio {
       const {source} = (await this.osanime.getMusicInfo(file)) || {};
       let url = source ?? file;
 
-      if (source?.startsWith('https://osanime.com/filedownload/')) {
+      if (url?.startsWith('https://osanime.com/filedownload/')) {
         console.log('Getting redirect url...');
-        url = (await this.osanime.getRedirect(source)) ?? file;
+        url = (await this.osanime.getRedirect(url)) ?? url;
         console.log(`Redirect url of ${source} is ${url}`);
       }
 
       item.file = url;
       item.headers = new Headers({
         'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'+
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' +
           ' (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
         'referer': item.file,
         'range': 'bytes=0-',
+        'Connection': 'keep-alive',
       });
     }
 
