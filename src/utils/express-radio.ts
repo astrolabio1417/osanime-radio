@@ -26,7 +26,6 @@ class ExpressRadio {
       'user-agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' +
         ' (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-      'Connection': 'keep-alive',
     });
     this.errors = 0;
     this.max_errors = 2;
@@ -233,7 +232,6 @@ class OsAnimeRadio extends ExpressRadio {
           ' (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
         'referer': item.file,
         'range': 'bytes=0-',
-        'Connection': 'keep-alive',
       });
     }
 
