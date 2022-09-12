@@ -73,7 +73,7 @@ export class OsAnime {
       itemsJson.push({
         title: item.attrs['title'],
         url: item.attrs['href'],
-        image: `https${image.attrs['src']}`,
+        image: `https:${image.attrs['src']}`,
       });
     });
 

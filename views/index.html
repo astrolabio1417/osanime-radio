@@ -9,11 +9,11 @@
     <meta property="og:site_name" content="OsAnime Unofficial Radio">
     <meta property="og:type" content="article">
     <meta property="og:title" content="OsAnime Unofficial Radio">
-    <meta property="og:url" content="https://osanime-radio.onrender.com">
+    <meta property="og:url" content="https://radio.animeyubi.com">
     <meta name="description" content="test Radio App using express js">
     <meta property="og:image"
         content="https://dl3.wapkizfile.info/ddl/b1467d0a5330091b554e2d892f7e8308/osanime+wapkiz+com/002-(osanime.wapkiz.com).gif">
-    <meta property="og:image:secure_url" content="https://osanime-radio.onrender.com">
+    <meta property="og:image:secure_url" content="https://radio.animeyubi.com">
     <meta property="og:image:width" content="373">
     <meta property="og:image:height" content="222">
     <link rel="shortcut icon"
@@ -25,113 +25,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0px;
-            background-color: rgb(91, 91, 91);
-            color: white;
-            font-family: 'Mochiy Pop P One', sans-serif;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .nav {
-            padding: 5% 0px 5% 0px;
-            margin: 0px auto 2% auto;
-        }
-
-        #nav-title {
-            font-size: x-large;
-            font-weight: bold;
-            font-style: italic;
-        }
-
-        #nav-title:hover {
-            font-weight: 100;
-        }
-
-        .container {
-            margin: 0px 20% 0px 20%;
-            padding: 1px 2% 1px 2%;
-            background-color: rgb(43, 43, 43);
-        }
-
-        .player {
-            margin: auto;
-            width: 50%;
-        }
-
-        .player-button {
-            border-style: none;
-            margin: 1%;
-        }
-
-        #musics {
-            margin: 10% auto 10% auto;
-        }
-
-        .svg {
-            max-width: 100%;
-            max-height: 100%;
-            height: 100%;
-            width: 100%;
-            color: turquoise;
-        }
-
-        .svg-container {
-            height: 30px;
-            width: 30px;
-            padding: 20px 30px 20px 30px;
-            border-radius: 20px;
-        }
-
-        .player-button:hover {
-            background-color: lightskyblue;
-        }
-
-        .player-button:active {
-            background-color: rgb(56, 179, 255);
-        }
-
-        .download {
-            border-style: none;
-            font-family: inherit;
-            color: black;
-            background-color: white;
-            border-radius: 2px;
-            padding: 0px 1% 0px 1%;
-            margin: 0px 1% 0px 1%;
-        }
-
-        .download:hover {
-            background-color: lightblue;
-        }
-
-        @media only screen and (max-width: 800px) {
-            .container {
-                margin: 0px 1% 0px 1%;
-            }
-
-            .player {
-                width: auto;
-            }
-
-
-        }
-    </style>
+    <link rel="stylesheet" href="/css/index.css" />
 </head>
 
 
 <body>
     <div class="container">
         <div class="nav">
-            <a id="nav-title" href="https://osanime-radio.onrender.com/">Osanime Radio</a>
+            <a id="nav-title" href="https://radio.animeyubi.com/">Osanime Radio</a>
         </div>
         <input id="priority-input" placeholder="ID" hidden />
         <button onclick="onAddToPriority()" hidden>Add to queue</button>
+        
         <div class="player">
             <div id="player-header"></div>
             <br>
@@ -150,143 +55,27 @@
                     <img id="vol-up-svg" class="svg" src="/svg/volume-up.svg" />
                 </div>
             </button>
+            <a href="#search-input">
+                <button class="player-button">
+                    <div class="svg-container">
+                        <img class="svg" src="/svg/search.svg" />
+                    </div>
+                </button>
+            </a>
             <audio id="audio" controls src="/stream" preload="none" hidden></audio>
         </div>
-        <ol id="musics"></ol>
+
+        <div class="list" id="musics"></div>
+        
+        <div>
+            <hr>
+            <h5>Browse</h5>
+            <input id="search-input" type="text" placeholder="search title/file" value="">
+            <div class="list" id="search-container"></div>
+        </div>
     </div>
 
-    <script type="text/javascript">
-        musicQueue()
-        setInterval(musicQueue, 5000)
-        let pauseTime = 0
-        const audio = document.getElementById("audio")
-        const playButton = document.getElementById("play-pause")
-        const playButtonSvg = document.getElementById("play-pause-svg")
-        const volUpButton = document.getElementById("volume-up")
-        const volDownButton = document.getElementById("volume-down")
-        const priorityInput = document.getElementById("priority-input")
-        const musicsOrderList = document.getElementById("musics")
-
-        async function musicQueue() {
-            const res = await fetch("/stream/queue")
-            if (!res.ok) return
-            const { priorities, connected, results } = await res.json()
-            const current = results[0]
-            const currentDiv = document.getElementById("player-header")
-            currentDiv.innerHTML = ""
-            const title = document.createElement("h1")
-            const connectedElement = document.createElement("span")
-            const prioritiesElement = document.createElement("span")
-            title.innerHTML = `${current?.title}`
-            connectedElement.innerHTML = `Connected: ${connected} <br>`
-            prioritiesElement.innerHTML = `Priorities: ${priorities + 1}`
-            currentDiv.appendChild(title)
-            currentDiv.appendChild(connectedElement)
-            currentDiv.appendChild(prioritiesElement)
-
-
-            musicsOrderList.innerHTML = ""
-            results.map((m, index) => {
-                const listElement = document.createElement("li")
-                const divElement = document.createElement("div")
-                const priorityElement = document.createElement("button")
-                const downloadElement = document.createElement("button")
-                const downloadLinkElement = document.createElement("a")
-                const titleElement = document.createElement("span")
-
-                titleElement.innerHTML = `${m?.title}`
-                downloadLinkElement.innerHTML = "Download"
-                downloadLinkElement.href = `/stream/${m?.id}/download`
-                downloadElement.className = "download"
-                downloadElement.appendChild(downloadLinkElement)
-
-                if (index > priorities) {
-                    priorityElement.innerHTML = "Add to priority"
-                    priorityElement.className = "download"
-                    priorityElement.onclick = () => {
-                        priorityInput.value = m?.id
-                        onAddToPriority()
-                    }
-                    divElement.appendChild(priorityElement)
-                }
-
-                divElement.appendChild(downloadElement)
-                divElement.appendChild(titleElement)
-                listElement.append(divElement)
-                musicsOrderList.appendChild(listElement)
-            })
-        }
-
-
-        async function onAddToPriority() {
-            console.log("add to priority");
-            if (!priorityInput.value) return
-
-            const res = await fetch("/stream/add-to-priority", {
-                method: "post",
-                headers: new Headers({
-                    "content-type": "application/json"
-                }),
-                body: JSON.stringify({
-                    id: priorityInput.value
-                })
-            })
-            const body = await res.json()
-            console.log(body);
-        }
-
-        function setPlayPause() {
-            audio.paused ? audio.play() : audio.pause()
-        }
-
-        function onVolumeSet(set) {
-            const volume = audio.volume
-
-            if (set == 1) {
-                const newVol = volume + 0.1
-                audio.volume = newVol >= 1.0 ? 1.0 : newVol
-            } else {
-                const newVol = volume - 0.2
-                audio.volume = newVol <= 0.0 ? 0.0 : newVol
-            }
-        }
-
-
-        function reloadPlayer() {
-            console.log("audio error! reloading...");
-            audio.src = ""
-            audio.src = "/stream"
-            audio.load()
-            audio.play()
-        }
-
-        function onPlayPause() {
-            audio.paused ? (playButtonSvg.src = "/svg/play.svg") : (playButtonSvg.src = "/svg/pause.svg")
-        }
-
-        playButton.addEventListener("click", () => setPlayPause())
-        volUpButton.addEventListener("click", () => onVolumeSet(1))
-        volDownButton.addEventListener("click", () => onVolumeSet(0))
-        audio.addEventListener("play", () => {
-            const now = new Date().getTime()
-            const seconds = (now - pauseTime) / 1000
-            const secondsToReload = 2
-            if (pauseTime !== 0 && seconds >= secondsToReload) {
-                reloadPlayer()
-                pauseTime = 0
-            }
-            onPlayPause()
-        })
-        audio.addEventListener("pause", () => {
-            pauseTime = new Date().getTime()
-            onPlayPause()
-        })
-        audio.addEventListener("error", () => { console.log("audio error..."); reloadPlayer() })
-        audio.addEventListener("ended", () => { console.log("audio ended..."); reloadPlayer() })
-        audio.addEventListener("waiting", () => {
-            console.log("buffering...");
-        })
-    </script>
+    <script src="/js/index.js"></script>
 </body>
 
 </html>

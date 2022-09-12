@@ -76,9 +76,11 @@ class ExpressRadio {
    * @return {InterfaceRadioPlaylistItem[]} - list of query
    */
   searchByTitle(q: string = ''): InterfaceRadioPlaylistItem[] {
-    return this.playlist.filter(
-        (item) => item.title.includes(q) || item.file.includes(q),
-    );
+    return this.playlist.filter((item) => {
+      const title = item?.title?.toLowerCase();
+      const query = q?.toLowerCase();
+      return title.includes(query) || title.includes(query);
+    });
   }
 
   /**

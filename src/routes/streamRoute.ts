@@ -37,6 +37,29 @@ streamRoute.get('/queue', (req, res) => {
   });
 });
 
+streamRoute.post('/add-to-priority', (req, res) => {
+  const result = radio.addToPriority(req.body?.id);
+
+  if (result === -1 || result === -2) {
+    res.status(400).json({
+      message: result === -2 ? 'ID is in the priority lists.' : 'ID Not Found',
+    });
+  } else {
+    res.json({
+      result: result,
+    });
+  }
+});
+
+streamRoute.get('/search', (req, res) => {
+  const query = req.query?.q?.toString();
+
+  res.json({
+    query: query,
+    results: radio.searchByTitle(query),
+  });
+});
+
 streamRoute.get('/:id', (req, res) => {
   res.json(radio.searchById(req.params.id));
 });
@@ -54,20 +77,6 @@ streamRoute.get('/:id/download', async (req, res) => {
     reader?.pipe(res);
   } else {
     res.status(400).json({message: 'ID not found'});
-  }
-});
-
-streamRoute.post('/add-to-priority', (req, res) => {
-  const result = radio.addToPriority(req.body?.id);
-
-  if (result === -1 || result === -2) {
-    res.status(400).json({
-      message: result === -2 ? 'ID is in the priority lists.' : 'ID Not Found',
-    });
-  } else {
-    res.json({
-      result: result,
-    });
   }
 });
 
