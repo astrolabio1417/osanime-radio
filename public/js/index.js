@@ -1,4 +1,5 @@
 /* eslint-disable require-jsdoc */
+let waiting = false;
 musicQueue();
 setInterval(musicQueue, 5000);
 const audio = document.getElementById('audio');
@@ -28,6 +29,7 @@ function createList(list, priorities) {
 
     downloadLinkElement.innerHTML = 'Download';
     downloadLinkElement.href = `/stream/${m?.id}/download`;
+    downloadLinkElement.target = '_blank';
 
     downloadElement.className = 'music-item-button';
     downloadElement.appendChild(downloadLinkElement);
@@ -50,9 +52,14 @@ function createList(list, priorities) {
 }
 
 async function musicQueue() {
-  const res = await fetch('/stream/queue');
-  if (!res.ok) return;
-  const {priorities, connected, results} = await res.json();
+  if (waiting) return;
+  waiting = true;
+  const res = await fetch('/stream/queue').catch((e) => {
+    console.error(e); return null;
+  });
+  if (!res?.ok) return (waiting = false);
+  const {priorities, connected, results} = await res.json() || {};
+  if (!results) return (waiting = false);
   const current = results[0];
   const currentDiv = document.getElementById('player-header');
   currentDiv.innerHTML = '';
@@ -63,10 +70,9 @@ async function musicQueue() {
   connectedElement.innerHTML = `Connected: ${connected} <br>`;
   prioritiesElement.innerHTML = `Priorities: ${priorities + 1}`;
   currentDiv.appendChild(title);
-  //   currentDiv.appendChild(connectedElement);
-  //   currentDiv.appendChild(prioritiesElement);
   musicsContainer.innerHTML = '';
   createList(results, priorities)?.map((e) => musicsContainer.appendChild(e));
+  waiting = false;
 }
 
 async function inputKeyup(e) {
@@ -79,9 +85,8 @@ async function inputKeyup(e) {
   const res = await fetch(`/stream/search?q=${searchInput?.value}`);
   if (!res.ok) return;
   const {results} = await res.json();
-  createList(results, -1)?.map((e) => {
-    searchContainer.appendChild(e); e.focus();
-  });
+  createList(results, -1)?.map((e) => searchContainer.appendChild(e));
+  searchInput.focus();
 }
 
 async function onAddToPriority() {

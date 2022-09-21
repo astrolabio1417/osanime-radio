@@ -26,6 +26,7 @@ export class OsAnime {
   name: string;
   url: string;
   headers: Headers;
+
   constructor() {
     this.name = 'OS Anime';
     this.url = 'https://osanime.com';
@@ -33,11 +34,11 @@ export class OsAnime {
       'user-agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'+
         '(KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-      'referer': 'https://osanime.com/',
+      'referer': this.url,
     });
   }
 
-  async list(page: string, sort = 'newest') {
+  async list(page: string = '1', sort = 'newest') {
     const SORTING: { [key: string]: string } = {
       newest: 'idl',
       asc: 'nl',
@@ -62,7 +63,7 @@ export class OsAnime {
     const soup = parse(html);
     const article = soup.querySelector('article');
     if (!article) return [];
-    const items = article.querySelectorAll('a'); // , { rel: "bookmark" }
+    const items = article.querySelectorAll('a');
     const itemsJson: IOsPlaylistItem[] = [];
 
     items.map((item) => {
@@ -111,33 +112,30 @@ export class OsAnime {
     return res?.url;
   }
 
-  async getMusicResponse(url: string) {
-    const info = await this.getMusicInfo(url);
-    if (!info) return null;
-    const {source, session} = info;
-    const response = await fetch(source, {
+  async download(url: string, range: number = 0) {
+    if (url.startsWith('https://osanime.com/filedownload/')) {
+      url = await this.getRedirect(url);
+    }
+    const response = await fetch(url, {
       headers: new Headers({
         'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'+
-          '(KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-        'referer': url,
-        'range': 'bytes=0-',
-        'accept-encoding': 'identity;q=1, *;q=0',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' +
+            '(KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
+        'referer': this.url,
+        'range': `bytes=${range}-`,
         'Connection': 'keep-alive',
-        'cookie': `osanime_com=${session}`,
       }),
     }).catch((e) => console.log(e));
     return response;
   }
 
-  async getRedirectUrl(url: string) {}
-
   async downloader(url: string, filename: string) {
     if (fs.existsSync(filename)) return filename;
-    const response = await this.getMusicResponse(url);
-    if (!response || response.status !== 206 || response.body === null) {
-      return null;
-    }
+    const musicInfo = await this.getMusicInfo(url);
+    if (!musicInfo) return;
+    const {source} = musicInfo;
+    const response = await this.download(source);
+    if (response?.status !== 206 || response.body) return null;
     console.log(`Status ${response.status} | Downloading ${filename}`);
     await saveFile(response.body, filename);
     return filename;
@@ -177,7 +175,7 @@ async function ostDownloader() {
   console.log(`Total: ${songList.length}`);
 }
 
-async function ostDownloaderMulti(limit = 10) {
+async function getAnimeSongs(limit = 10) {
   const o = new OsAnime();
   let page = 1;
   const limitFetch = limit;
@@ -205,9 +203,9 @@ async function ostDownloaderMulti(limit = 10) {
     page += limitFetch;
   }
 
-  fs.writeFileSync('./anime-ost-list.json', JSON.stringify(songList));
   console.log('finished!');
   console.log(`Total: ${songList.length}`);
+  return songList;
 }
 
-export {IOsPlaylistItem, ostDownloader, ostDownloaderMulti};
+export {IOsPlaylistItem, ostDownloader, getAnimeSongs};

@@ -5,6 +5,7 @@ import {ffprobe} from '@dropb/ffprobe';
 import Throttle from 'throttle';
 import {OsAnime} from './osanime';
 import {InterfaceRadioPlaylistItem} from '../@types/express-radio';
+import {shuffle} from './shuffle';
 
 /**
  *  Class to create Radio
@@ -32,6 +33,20 @@ class ExpressRadio {
     this.max_errors = 2;
     this.clients = [];
     this.priorities = 0;
+  }
+
+  /**
+   * shuffle the playlist
+   */
+  shuffle() {
+    this.playlist = shuffle(this.playlist);
+  };
+
+  /**
+   * @param {Object[]} playlist - list of musics
+   */
+  update(playlist: InterfaceRadioPlaylistItem[] = []) {
+    this.playlist = playlist;
   }
 
   /**
@@ -148,6 +163,19 @@ class ExpressRadio {
     this.clients.splice(clientIdex, 1);
   }
 
+  // eslint-disable-next-line require-jsdoc
+  async getFfprobe(file: string) {
+    const ffprobeData = await ffprobe(file).catch((e) => {
+      console.error(e, 'ffprobe error');
+    });
+    if (!ffprobeData) return null;
+
+    return {
+      bitRate: ffprobeData.format.bit_rate,
+      duration: ffprobeData.format.duration,
+    };
+  }
+
   /**
    * play/loop playlist
    */
@@ -162,11 +190,7 @@ class ExpressRadio {
       console.error(e, 'readstream error');
       return null;
     });
-    const ffprobeData = await ffprobe(selected.file).catch((e) => {
-      console.error(e, 'ffprobe error');
-      return null;
-    });
-    const {duration, bit_rate: bitRate} = ffprobeData?.format || {};
+    const {duration, bitRate} = (await this.getFfprobe(selected.file)) || {};
     console.log(`timeout ${duration} | bitrate ${bitRate}`);
 
     if (!readStream || !bitRate || !duration) {
@@ -180,8 +204,9 @@ class ExpressRadio {
       return await this.play();
     }
 
-    const throttler = new Throttle((parseInt(bitRate)) / 8);
-    const timeoutTimer = (parseInt(duration) * 1000) + 5000;
+    const throttler = new Throttle(parseInt(bitRate) / 8);
+    const fiveSeconds = 5000;
+    const timeoutTimer = parseInt(duration) * 1000 + fiveSeconds;
     const timer = setTimeout(() => {
       throttler.destroy();
       this._onEnded();
@@ -235,26 +260,25 @@ class OsAnimeRadio extends ExpressRadio {
     if (file.startsWith('https://osanime.com/site-down.html?to-file=')) {
       console.log('Getting file info...', title);
       const {source} = (await this.osanime.getMusicInfo(file)) || {};
-      let url = source ?? file;
-
-      if (url?.startsWith('https://osanime.com/filedownload/')) {
-        console.log('Getting redirect url...');
-        url = (await this.osanime.getRedirect(url)) ?? url;
-        console.log(`Redirect url of ${source} is ${url}`);
-      }
-
-      item.file = url;
-      item.headers = new Headers({
-        'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' +
-          ' (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
-        'referer': item.file,
-        'range': 'bytes=0-',
-        'Connection': 'keep-alive',
-      });
+      if (!source) return null;
+      console.log('Getting redirect url...');
+      const response = await this.osanime.download(source);
+      if (!response) return null;
+      console.log(`Redirect url of ${source} is ${response.url} with a` +
+      ` status of ${response.status}`);
+      return response.body;
     }
 
     return super.createReadStream(item);
+  }
+
+
+  // eslint-disable-next-line require-jsdoc
+  async getFfprobe(file: string):
+  Promise<{ bitRate: string; duration: string; } | null> {
+    const {source} = (await this.osanime.getMusicInfo(file)) || {};
+    file = await this.osanime.getRedirect(source ?? file);
+    return super.getFfprobe(file);
   }
 }
 
