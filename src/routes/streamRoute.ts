@@ -5,10 +5,15 @@ import {InterfaceOsanimeItem} from '../@types/osanime';
 import {v4 as uuidv4} from 'uuid';
 import contentDisposition from 'content-disposition';
 import {getAnimeSongs} from '../utils/osanime';
+import songs from '../../public/songs.json';
+import fs from 'fs';
+
 
 const streamRoute = router();
 const radio = new OsAnimeRadio();
 radio.play();
+radio.update(songs);
+
 
 // eslint-disable-next-line require-jsdoc
 async function updateRadio() {
@@ -21,11 +26,10 @@ async function updateRadio() {
         image: item?.image,
       }),
   );
+  fs.writeFileSync(`./public/songs.json`, JSON.stringify(radioPlaylist));
   radio.update(radioPlaylist);
   radio.shuffle();
 }
-
-updateRadio();
 
 streamRoute.get('/', (req, res) => {
   radio.addClient(res);
