@@ -32,4 +32,4 @@ COPY --from=builder /src/frontend/dist dist/public
 # EXPOSE 80
 # ENV PORT=80
 
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "start"]
