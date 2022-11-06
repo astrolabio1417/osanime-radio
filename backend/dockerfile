@@ -1,0 +1,15 @@
+FROM node:18-alpine3.15 as base
+
+WORKDIR /src
+
+RUN apk --update add ffmpeg
+RUN npm -g install pnpm
+COPY ./package*.json .
+RUN pnpm install
+
+
+FROM base as development
+COPY . .
+ENV PORT=8000
+EXPOSE 8000
+CMD ["pnpm", "dev"]

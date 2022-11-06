@@ -3,10 +3,27 @@ version: "3.3"
 services:
   express-app:
     build:
-      context: ./
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: dockerfile
       target: development
     volumes:
-      - .:/src
+      - ./backend:/src
+      - /src/node_modules
     ports:
       - 8000:8000
+    stdin_open: true
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+  frontend-app:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+      target: development
+    volumes:
+      - ./frontend:/src
+      - /src/node_modules
+    ports:
+      - 3000:3000
+    stdin_open: true
+    environment:
+      CHOKIDAR_USEPOLLING: "true"

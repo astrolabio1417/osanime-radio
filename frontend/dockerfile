@@ -1,0 +1,16 @@
+FROM node:18-alpine3.15 as builder
+
+WORKDIR /src
+
+RUN npm -g install pnpm
+COPY package.json .
+COPY yarn.lock .
+RUN pnpm install
+
+FROM builder as development
+
+ENV PORT=3000
+EXPOSE 3000
+
+COPY . .
+CMD ["pnpm", "dev"]
