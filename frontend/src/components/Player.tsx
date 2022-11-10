@@ -8,7 +8,6 @@ interface PlayerProps {
 
 export function Player(props: PlayerProps) {
   const radioRef = useRef<HTMLAudioElement>(null)
-  const playImageRef = useRef<HTMLImageElement>(null)
   const [isPlaying, setIsPlaying] = useState<boolean | null>(false)
   const { src, reloadOnPlay, showAudio } = props
   const errors = {
@@ -67,37 +66,33 @@ export function Player(props: PlayerProps) {
       </audio>
       {!showAudio && (
         <>
-          <button onClick={onClickPlay} className="player-button" id="play-pause">
-            <img
-              ref={playImageRef}
-              id="play-pause-svg"
-              src={
+          <button
+            onClick={onClickPlay}
+            className="player__button"
+            id="play-pause"
+            style={{
+              backgroundImage: `url('${
                 isPlaying === null
                   ? '/svg/loading.svg'
                   : isPlaying
                   ? '/svg/pause.svg'
                   : '/svg/play.svg'
-              }
-              alt="play button"
-              title="play/pause button"
-            />
-          </button>
+              }')`,
+              backgroundSize: '1.2rem',
+            }}
+          ></button>
           <button
             onClick={() => onVolume('up')}
-            className="player-button"
+            className="player__button"
             id="volume-down"
             title="volume down"
-          >
-            <img id="vol-down-svg" src="/svg/volume-down.svg" alt="volume down" />
-          </button>
+          ></button>
           <button
             onClick={() => onVolume('down')}
-            className="player-button"
+            className="player__button"
             id="volume-up"
             title="volume up"
-          >
-            <img id="vol-up-svg" src="/svg/volume-up.svg" alt="volume up" />
-          </button>
+          ></button>
         </>
       )}
     </>

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 
-import { Player } from '../components/Player'
+import PlayerTop from '../components/PlayerTop'
+import PriorityButton from '../components/PriorityButton'
 import { HOST } from '../config'
 import { usePlaylistSong } from '../hooks/usePlaylistSong'
 
@@ -10,33 +11,30 @@ export function Song() {
 
   const downloadUrl = `${HOST}/stream/${data?.id}/download`
 
+  function DownloadButton() {
+    return (
+      <button
+        className="player__button"
+        title="download"
+        onClick={() => (location.href = downloadUrl)}
+        style={{
+          backgroundImage: "url('/svg/download.svg')",
+          backgroundSize: '1.5rem',
+        }}
+      />
+    )
+  }
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '80vh',
-      }}
-    >
-      <div className="player">
-        <div className="player-top">
-          <div className="player-title">{data?.title ?? 'loading...'}</div>
-          <div className="player-controls">
-            <Player src={data ? downloadUrl : ''} showAudio={false} />
-            {data && (
-              <a
-                className="player-button"
-                href={downloadUrl}
-                target={'_blank'}
-                rel="noreferrer"
-              >
-                <img src="/svg/download.svg" alt="download" title="download" />
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="song__container">
+      <PlayerTop
+        title={data?.title}
+        streamUrl={data ? downloadUrl : ''}
+        controls={[<DownloadButton key="dl-button" />]}
+      />
+      {data?.priority !== true && (
+        <PriorityButton key="priority-button" id={data ? data?.id : ''} />
+      )}
     </div>
   )
 }

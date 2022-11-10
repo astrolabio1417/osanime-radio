@@ -10,7 +10,6 @@ export function usePlaylistSong(props: { songId: string }) {
   async function getData(): Promise<PlaylistItem> {
     const response = await fetch(`${HOST}/stream/${songId}`)
     const json: PlaylistItem = await response.json()
-    console.log(json)
     return json
   }
 

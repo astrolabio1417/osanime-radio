@@ -1,5 +1,6 @@
 import { HOST } from '../config'
 import { PlaylistItem } from '../types'
+import PriorityButton from './PriorityButton'
 
 interface PlayerBodyProps {
   listTitle: string
@@ -37,35 +38,7 @@ export function PlayerBody(props: PlayerBodyProps) {
               >
                 <button className="primary-button">Download</button>
               </a>
-              {item?.priority !== true && (
-                <button
-                  className="primary-button"
-                  onClick={() => {
-                    fetch(`${HOST}/stream/add-to-priority`, {
-                      method: 'post',
-                      body: JSON.stringify({
-                        id: item?.id,
-                      }),
-                      headers: {
-                        'content-type': 'application/json',
-                      },
-                    })
-                      .then((res) => res.json())
-                      .then((data) => {
-                        alert(
-                          `${
-                            data?.result?.title
-                              ? 'added to priority list!'
-                              : data?.message
-                          }`,
-                        )
-                        data?.result?.title
-                      })
-                  }}
-                >
-                  Add to priority
-                </button>
-              )}
+              {item?.priority !== true && <PriorityButton id={item?.id} />}
             </div>
           </div>
         ))}
