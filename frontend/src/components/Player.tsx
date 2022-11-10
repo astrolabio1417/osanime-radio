@@ -45,6 +45,23 @@ export function Player(props: PlayerProps) {
     radioRef.current.volume = newVolume > 1.0 ? 1.0 : newVolume
   }
 
+  const playImages = {
+    loading: {
+      src: '/svg/loading.svg',
+      size: '1.3rem',
+    },
+    pause: {
+      src: '/svg/pause.svg',
+      size: '1.1rem',
+    },
+    play: {
+      src: '/svg/play.svg',
+      size: '1.4rem',
+    },
+  }
+  const playImage =
+    playImages[isPlaying === null ? 'loading' : isPlaying ? 'pause' : 'play']
+
   return (
     <>
       <audio
@@ -71,14 +88,8 @@ export function Player(props: PlayerProps) {
             className="player__button"
             id="play-pause"
             style={{
-              backgroundImage: `url('${
-                isPlaying === null
-                  ? '/svg/loading.svg'
-                  : isPlaying
-                  ? '/svg/pause.svg'
-                  : '/svg/play.svg'
-              }')`,
-              backgroundSize: '1.2rem',
+              backgroundImage: `url('${playImage.src}')`,
+              backgroundSize: playImage.size,
             }}
           ></button>
           <button

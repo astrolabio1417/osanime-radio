@@ -15,7 +15,7 @@ function Home() {
           title="search"
           style={{
             backgroundImage: 'url("/svg/search.svg")',
-            backgroundSize: '1.5rem',
+            backgroundSize: '1.3rem',
           }}
         ></button>
       </Link>
