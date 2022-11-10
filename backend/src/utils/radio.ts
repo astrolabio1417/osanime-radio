@@ -1,22 +1,22 @@
 import fetch, { Headers } from 'node-fetch'
-import Express from 'express'
 import fs from 'fs'
 import { ffprobe } from '@dropb/ffprobe'
 import Throttle from 'throttle'
 import { OsAnime } from './osanime'
-import { InterfaceRadioPlaylistItem } from '../@types/express-radio'
+import { InterfaceRadioPlaylistItem } from '../@types/radio'
 import { shuffle } from './shuffle'
+import { EventEmitter } from 'stream'
 
 /**
  *  Class to create Radio
  */
-class ExpressRadio {
+class Radio {
   playlist: InterfaceRadioPlaylistItem[]
   defaultHeaders: Headers
   errors: number
   max_errors: number
-  clients: Express.Response[]
   priorities: number
+  eventEmitter: EventEmitter
 
   /**
    * @param {InterfaceRadioPlaylistItem[]} playlist - list of musics
@@ -32,8 +32,8 @@ class ExpressRadio {
     })
     this.errors = 0
     this.max_errors = 2
-    this.clients = []
     this.priorities = 0
+    this.eventEmitter = new EventEmitter()
   }
 
   /**
@@ -98,10 +98,8 @@ class ExpressRadio {
   }
 
   /**
-   * @param {string} id - yeet
-   * @return {number | InterfaceRadioPlaylistItem} item of playlist or boolean
-   * -1 = Not Found
-   * -2 = Priority item
+   * @param {string} id - id of playlist item
+   * @return {string | InterfaceRadioPlaylistItem} item of playlist | 'not_found' | 'in_priority_list'
    */
   addToPriority(
     id: string,
@@ -117,9 +115,9 @@ class ExpressRadio {
   }
 
   /**
-   * @param {InterfaceRadioPlaylistItem} item - item of playlist
-   * @return {Promise<NodeJS.ReadableStream | null>} return readableStream
-   * or null for invalid file
+   * @param {string} src - url or filename
+   * @param {Headers} headers? - node-fetch header
+   * @return {Promise<NodeJS.ReadableStream | null>} return readableStream | null
    */
   async createReadStream(
     src: string,
@@ -157,30 +155,11 @@ class ExpressRadio {
    * move one item from top to bottom
    * return void
    */
-  playlistRotate() {
+  playlistRotate(): void {
     this.priorities && this.priorities--
     const current = this.playlist.shift()
     current?.priority && (current.priority = false)
     current && this.playlist.splice(this.playlist.length - 1, 0, current)
-  }
-
-  /**
-   * Add express response to the list of clients
-   * @param {Express.Response} response - Express Response
-   */
-  addClient(response: Express.Response) {
-    this.clients.push(response)
-  }
-
-  /**
-   * Remove express response to the list of clients
-   * @param {Express.Response} response - Express response
-   */
-  removeClient(response: Express.Response): void {
-    const clientIdex = this.clients.findIndex((res) => res === response)
-    if (clientIdex === -1) return
-    console.log(`Client ${clientIdex} has been disconnected!`)
-    this.clients.splice(clientIdex, 1)
   }
 
   // eslint-disable-next-line require-jsdoc
@@ -204,14 +183,17 @@ class ExpressRadio {
       await new Promise((resolve) => setTimeout(resolve, 1000))
       return await this.play()
     }
-    const selected = this.playlist[0]
-    selected.priority = true
-    console.log(selected?.file)
-    const readStream = await this.createReadStream(selected.file).catch((e) => {
+    const { file: filename, headers } = this.playlist[0]
+    this.playlist[0].priority = true
+
+    console.log(filename)
+
+    const readStream = await this.createReadStream(filename, headers).catch((e) => {
       console.error(e, 'readstream error')
       return null
     })
-    const { duration, bitRate } = (await this.getFfprobe(selected.file)) || {}
+    const { duration, bitRate } = (await this.getFfprobe(filename)) || {}
+
     console.log(`timeout ${duration} | bitrate ${bitRate}`)
 
     if (!readStream || !bitRate || !duration) {
@@ -234,7 +216,8 @@ class ExpressRadio {
     }, timeoutTimer)
 
     console.log(`streaming started... total size: ${readStream.size}`)
-    throttler.on('data', (chunk) => this.clients.map((r) => r.write(chunk)))
+
+    throttler.on('data', (chunk) => this.eventEmitter.emit('stream', chunk))
     throttler.on('end', () => {
       clearTimeout(timer)
       this._onEnded()
@@ -254,9 +237,9 @@ class ExpressRadio {
 }
 
 /**
- * Class for OsanimeRadio using ExpressRadio
+ * Class for OsanimeRadio using Radio
  */
-class OsAnimeRadio extends ExpressRadio {
+class OsAnimeRadio extends Radio {
   osanime: OsAnime
 
   /**
@@ -267,11 +250,6 @@ class OsAnimeRadio extends ExpressRadio {
     this.osanime = new OsAnime()
   }
 
-  /**
-   * override expressRadio createReadStream
-   * @param {InterfaceRadioPlaylistItem} item - item of playlist
-   * @return {Promise<NodeJS.ReadableStream | null>} nothing to say
-   */
   async createReadStream(
     src: string,
     headers?: Headers,
@@ -304,4 +282,4 @@ class OsAnimeRadio extends ExpressRadio {
   }
 }
 
-export { OsAnimeRadio, ExpressRadio }
+export { OsAnimeRadio, Radio }

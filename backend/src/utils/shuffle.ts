@@ -12,7 +12,9 @@ function shuffle(array: any[]): any[] {
     currentIndex--
 
     // And swap it with the current element.
-    ;[array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]]
+    const randomVal = array[randomIndex]
+    array[randomIndex] = array[currentIndex]
+    array[currentIndex] = randomVal
   }
 
   return array
