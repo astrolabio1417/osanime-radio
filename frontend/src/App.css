@@ -40,7 +40,7 @@ a {
   margin: 1rem auto;
   padding: 1rem;
   border-radius: 0.2rem;
-  min-height: 80vh;
+  min-height: calc(100vh - 7rem);
   max-width: 900px;
 }
 
@@ -167,11 +167,12 @@ a {
 }
 
 .song__container {
+  justify-self: center;
   display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  flex-wrap: wrap;
+  flex-direction: column;
+  min-height: calc(100vh - 7rem);
   gap: 2rem;
 }
