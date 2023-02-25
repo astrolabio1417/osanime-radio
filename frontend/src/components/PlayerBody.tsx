@@ -38,7 +38,7 @@ export function PlayerBody(props: PlayerBodyProps) {
               >
                 <button className="primary-button">Download</button>
               </a>
-              {item?.priority !== true && <PriorityButton id={item?.id} />}
+              {item?.priority !== true && <PriorityButton item={item} />}
             </div>
           </div>
         ))}

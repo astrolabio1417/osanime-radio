@@ -32,9 +32,7 @@ export function Song() {
         streamUrl={data ? downloadUrl : ''}
         controls={[<DownloadButton key="dl-button" />]}
       />
-      {data?.priority !== true && (
-        <PriorityButton key="priority-button" id={data ? data?.id : ''} />
-      )}
+      {data?.priority !== true && <PriorityButton key="priority-button" item={data} />}
     </div>
   )
 }

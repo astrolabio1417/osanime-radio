@@ -75,6 +75,7 @@ export function Player(props: PlayerProps) {
         controls
         src={src}
         preload="none"
+        className="player"
         style={{
           display: showAudio ? 'block' : 'none',
         }}
@@ -91,6 +92,7 @@ export function Player(props: PlayerProps) {
               backgroundImage: `url('${playImage.src}')`,
               backgroundSize: playImage.size,
             }}
+            title="play/pause"
           ></button>
           <button
             onClick={() => onVolume('up')}
